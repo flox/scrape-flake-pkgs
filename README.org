@@ -6,9 +6,8 @@ This package also provides a wrapper executable around =nix= which can be
 invoked as shown below:
 
 #+BEGIN_SRC console
-$ nix build -f ./.;
-$ ./result/bin/scrape-flake-pkgs nixpkgs|tee pkgs.json;
-$ jq '.legacyPackages["x86_64-linux"]|keys[]' pkgs.json|wc -l;
+$ nix run github:flox/scrape-flake-pkgs -- nixpkgs       \
+>   |jq '.legacyPackages["x86_64-linux"]|keys[]'|wc -l;
 19008
 #+END_SRC
 

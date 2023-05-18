@@ -7,7 +7,7 @@ invoked as shown below:
 
 #+BEGIN_SRC console
 $ nix run github:flox/scrape-flake-pkgs -- nixpkgs       \
->   |jq '.legacyPackages["x86_64-linux"]|keys[]'|wc -l;
+    |jq '.legacyPackages["x86_64-linux"]|keys[]'|wc -l;
 19008
 #+END_SRC
 

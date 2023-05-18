@@ -1,0 +1,32 @@
+#+TITLE: Scrape Metadata from Flake Packages
+
+This provides a =nix= plugin which adds the command ~nix scrape <URI>~.
+
+This package also provides a wrapper executable around =nix= which can be
+invoked as shown below:
+
+#+BEGIN_SRC console
+$ nix build -f ./.;
+$ ./result/bin/scrape-flake-pkgs nixpkgs|tee pkgs.json;
+$ jq '.legacyPackages["x86_64-linux"]|keys[]' pkgs.json|wc -l;
+19008
+#+END_SRC
+
+Feel free to extend the metadata collection routines in
+[[file:./scrape.cc][scrape.cc]] to suit your purposes.
+
+
+*** TODO: Group by =name= to avoid multiple declarations per system.
+
+
+* Systems
+
+By default the tool will search ~{x86_64,aarch64}-{linux,darwin}~.
+
+The flag =--all-systems= may be used to scrape every defined system.
+
+The option ~--systems system-list~,
+e.g. ~--systems 'x86_64-linux aarch64-linux'~, may be used to scrape systems
+named in a space separated list.
+
+The =--all-systems= flag will supersede the =--systems= option.

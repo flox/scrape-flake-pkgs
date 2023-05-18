@@ -24,8 +24,13 @@ By default the tool will search ~{x86_64,aarch64}-{linux,darwin}~.
 
 The flag =--all-systems= may be used to scrape every defined system.
 
-The option ~--systems system-list~,
-e.g. =--systems 'x86_64-linux aarch64-linux'=, may be used to scrape systems
-named in a space separated list.
+The option ~--systems system-list~ may be used to scrape systems named in a
+space separated list.
 
 The =--all-systems= flag will supersede the =--systems= option.
+
+Ex:
+#+BEGIN_SRC shell
+$ nix run github:flox/scrape-flake-pkgs --                              \
+    --systems 'x86_64-linux aarch64-linux' github:NixOS/nixpkgs/22.11;
+#+END_SRC

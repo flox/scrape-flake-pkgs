@@ -25,7 +25,7 @@ By default the tool will search ~{x86_64,aarch64}-{linux,darwin}~.
 The flag =--all-systems= may be used to scrape every defined system.
 
 The option ~--systems system-list~,
-e.g. ~--systems 'x86_64-linux aarch64-linux'~, may be used to scrape systems
+e.g. =--systems 'x86_64-linux aarch64-linux'=, may be used to scrape systems
 named in a space separated list.
 
 The =--all-systems= flag will supersede the =--systems= option.

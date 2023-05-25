@@ -16,13 +16,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-using namespace nix;
-using namespace nix::flake;
-using json = nlohmann::json;
-
-
-/* -------------------------------------------------------------------------- */
-
 #define _re_vp "(0|[1-9])[0-9]*"
 static const std::regex semverRE(
   _re_vp "\\." _re_vp "\\." _re_vp "(-[-[:alnum:]_+.]+)?"
@@ -68,7 +61,7 @@ parseSystems( const std::string                     & str
 
 /* -------------------------------------------------------------------------- */
 
-class FlakeCommand : virtual Args, public MixFlakeOptions
+class FlakeCommand : virtual nix::Args, public nix::MixFlakeOptions
 {
   std::string flakeUrl = ".";
 
@@ -86,17 +79,23 @@ class FlakeCommand : virtual Args, public MixFlakeOptions
       } );
     }
 
-    FlakeRef getFlakeRef()
+      nix::FlakeRef
+    getFlakeRef()
     {
-      return parseFlakeRef( flakeUrl, absPath( "." ) ); //FIXME
+      return nix::parseFlakeRef( flakeUrl, nix::absPath( "." ) ); //FIXME
     }
 
-    LockedFlake lockFlake()
+      nix::flake::LockedFlake
+    lockFlake()
     {
-      return flake::lockFlake( * getEvalState(), getFlakeRef(), lockFlags );
+      return nix::flake::lockFlake( * this->getEvalState()
+                                  , this->getFlakeRef()
+                                  , lockFlags
+                                  );
     }
 
-    std::vector<std::string> getFlakesForCompletion() override
+      std::vector<std::string>
+    getFlakesForCompletion() override
     {
       return { flakeUrl };
     }
@@ -141,10 +140,10 @@ struct CmdFlakeScrape : FlakeCommand {
     void
   run( nix::ref<nix::Store> store ) override
   {
-    evalSettings.enableImportFromDerivation.setDefault( false );
+    nix::evalSettings.enableImportFromDerivation.setDefault( false );
 
     auto state = getEvalState();
-    auto flake = std::make_shared<LockedFlake>( lockFlake() );
+    auto flake = std::make_shared<nix::flake::LockedFlake>( lockFlake() );
 
     std::unordered_set<std::string> systems;
     std::unordered_set<std::string> packagesSystems;
@@ -165,14 +164,14 @@ struct CmdFlakeScrape : FlakeCommand {
     // However, these attributes with empty values are not useful to the user
     // so we omit them.
     std::function<bool(
-            eval_cache::AttrCursor & visitor
-    , const std::vector<Symbol>    & attrPath
-    , const Symbol                 & attr
+            nix::eval_cache::AttrCursor & visitor
+    , const std::vector<nix::Symbol>    & attrPath
+    , const nix::Symbol                 & attr
     )> hasContent;
     hasContent = [&](
-              eval_cache::AttrCursor & visitor
-    ,   const std::vector<Symbol>    & attrPath
-    ,   const Symbol                 & attr
+              nix::eval_cache::AttrCursor & visitor
+    ,   const std::vector<nix::Symbol>    & attrPath
+    ,   const nix::Symbol                 & attr
     ) -> bool
     {
       auto attrPath2( attrPath );
@@ -202,7 +201,7 @@ struct CmdFlakeScrape : FlakeCommand {
           // If we don't recognize it, it's probably content
           return true;
         }
-      catch ( EvalError & e )
+      catch ( nix::EvalError & e )
         {
           // Some attrs may contain errors, eg. legacyPackages of
           // nixpkgs. We still want to recurse into it, instead of
@@ -212,35 +211,35 @@ struct CmdFlakeScrape : FlakeCommand {
     };
 
     std::function<nlohmann::json(
-            eval_cache::AttrCursor & visitor
-    , const std::vector<Symbol>    & attrPath
-    , const std::string            & headerPrefix
-    , const std::string            & nextPrefix
+            nix::eval_cache::AttrCursor & visitor
+    , const std::vector<nix::Symbol>    & attrPath
+    , const std::string                 & headerPrefix
+    , const std::string                 & nextPrefix
     )> visit;
 
     visit = [&](
-            eval_cache::AttrCursor & visitor
-    , const std::vector<Symbol>    & attrPath
-    , const std::string            & headerPrefix
-    , const std::string            & nextPrefix
+            nix::eval_cache::AttrCursor & visitor
+    , const std::vector<nix::Symbol>    & attrPath
+    , const std::string                 & headerPrefix
+    , const std::string                 & nextPrefix
     ) -> nlohmann::json
     {
       auto j = nlohmann::json::object();
 
       auto attrPathS = state->symbols.resolve( attrPath );
 
-      Activity act(
-        * logger
-      , lvlInfo
-      , actUnknown
-      , fmt( "evaluating '%s'", concatStringsSep( ".", attrPathS ) )
+      nix::Activity act(
+        * nix::logger
+      , nix::lvlInfo
+      , nix::actUnknown
+      , nix::fmt( "evaluating '%s'", concatStringsSep( ".", attrPathS ) )
       );
 
       try
         {
           auto recurse = [&]()
           {
-            std::vector<Symbol> attrs;
+            std::vector<nix::Symbol> attrs;
             for ( const auto & attr : visitor.getAttrs() )
               {
                 if ( hasContent( visitor, attrPath, attr ) )
@@ -262,11 +261,13 @@ struct CmdFlakeScrape : FlakeCommand {
                 auto j2 = visit(
                   * visitor2
                 , attrPath2
-                , fmt( ANSI_GREEN "%s%s" ANSI_NORMAL ANSI_BOLD
-                       "%s" ANSI_NORMAL
-                     , nextPrefix, last ? treeLast : treeConn, attrName
-                     )
-                , nextPrefix + ( last ? treeNull : treeLine )
+                , nix::fmt( ANSI_GREEN "%s%s" ANSI_NORMAL ANSI_BOLD
+                            "%s" ANSI_NORMAL
+                          , nextPrefix
+                          , last ? nix::treeLast : nix::treeConn
+                          , attrName
+                          )
+                , nextPrefix + ( last ? nix::treeNull : nix::treeLine )
                 );
                 if ( attrPath.size() == 0 )
                   {
@@ -309,7 +310,7 @@ struct CmdFlakeScrape : FlakeCommand {
             bool                       isSemver;
             std::string _name = visitor.getAttr( "name" )->getString();
 
-            DrvName dname( _name );
+            nix::DrvName dname( _name );
 
             if ( auto aOutputs = visitor.maybeGetAttr( "outputs" ) )
               {
@@ -434,7 +435,7 @@ struct CmdFlakeScrape : FlakeCommand {
                 if ( ! warnedAllSystems )
                   {
                     warnedAllSystems = true;
-                    logger->warn( fmt(
+                    nix::logger->warn( nix::fmt(
                       "Some systems omitted (use '--all-systems' to show)"
                     ) );
                   }
@@ -447,7 +448,7 @@ struct CmdFlakeScrape : FlakeCommand {
                   }
                 else
                   {
-                    throw Error( "expected a derivation" );
+                    throw nix::Error( "expected a derivation" );
                   }
               }
           }
@@ -467,7 +468,7 @@ struct CmdFlakeScrape : FlakeCommand {
                 if ( ! warnedAllSystems )
                   {
                     warnedAllSystems = true;
-                    logger->warn( fmt(
+                    nix::logger->warn( nix::fmt(
                       "Some systems omitted (use '--all-systems' to show)"
                     ) );
                   }
@@ -492,7 +493,7 @@ struct CmdFlakeScrape : FlakeCommand {
               }
           }
         }
-      catch ( EvalError & e )
+      catch ( nix::EvalError & e )
         {
           if ( ! ( ( 0 < attrPath.size() ) &&
                    ( attrPathS[0] == "legacyPackages" ) )
@@ -510,14 +511,24 @@ struct CmdFlakeScrape : FlakeCommand {
     auto j = visit(
                * cache->getRoot()
              , {}
-             , fmt( ANSI_BOLD "%s" ANSI_NORMAL, flake->flake.lockedRef )
+             , nix::fmt( ANSI_BOLD "%s" ANSI_NORMAL, flake->flake.lockedRef )
              , ""
              );
-    printInfo( fmt ( "packagesSystems: [%s]"
-                   , concatStringsSep( ", ", packagesSystems ) ) );
-    printInfo( fmt( "legacyPackagesSystems: [%s]"
-                  , concatStringsSep( ", ", legacyPackagesSystems ) ) );
-    logger->cout( "%s", j.dump() );
+
+    nix::logger->cout( "%s", j.dump() );
+    // Unrolled form of `printInfo' macro from `nix/logging.hh'
+    // Show these lists using `nix scrape -v ARGS;'
+    if ( nix::lvlInfo <= nix::verbosity )
+      {
+        nix::logger->log(
+          nix::lvlInfo
+        , nix::fmt(
+            "packagesSystems: [%s]\nlegacyPackagesSystems: [%s]"
+          , nix::concatStringsSep( ", ", packagesSystems )
+          , nix::concatStringsSep( ", ", legacyPackagesSystems )
+          )
+        );
+      }
 
   }  /* End `CmdFlakeScrape::run(...)' */
 

@@ -3,8 +3,8 @@
  *
  * -------------------------------------------------------------------------- */
 
+#include <string>
 #include <bits/stdc++.h>
-#include <nix/config.h>
 #include <nix/command.hh>
 #include <nix/eval.hh>
 #include <nix/eval-cache.hh>

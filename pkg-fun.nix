@@ -4,12 +4,14 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ stdenv, bash, nix, boost, nlohmann_json, darwin }: stdenv.mkDerivation {
+{ stdenv, bash, pkg-config, nix, boost, nlohmann_json, darwin }:
+stdenv.mkDerivation {
   pname       = "scrape-flake-pkgs";
   version     = "0.1.0";
   src         = builtins.path { path = ./.; };
+  nativeBuildInputs = [pkg-config];
   buildInputs = [
-    nix nix.dev boost nlohmann_json
+    nix nix.dev boost.dev nlohmann_json
   ] ++ (
     if stdenv.isDarwin then [darwin.apple_sdk.frameworks.Security] else []
   );
@@ -21,16 +23,9 @@
       -shared                                                                  \
       -fPIC                                                                    \
       -std=c++17                                                               \
-      -I${nix.dev}/include                                                     \
-      -I${nix.dev}/include/nix                                                 \
-      -I${boost.dev}/include                                                   \
-      -I${nlohmann_json}/include                                               \
-      -L${nix}/lib                                                             \
-      -lnixutil                                                                \
-      -lnixstore                                                               \
-      -lnixcmd                                                                 \
-      -lnixexpr                                                                \
-      -lstdc++                                                                 \
+      $( pkg-config --cflags --libs                                            \
+                    nlohmann_json nix-expr nix-main nix-store; )               \
+      -include ${nix.dev}/include/nix/config.h                                 \
       -o "libscrape$libExt"                                                    \
       ${if stdenv.isDarwin then "-undefined suppress -flat_namespace" else ""} \
       ./scrape.cc                                                              \

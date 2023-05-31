@@ -145,18 +145,6 @@ coerceSemver( std::string_view version )
 }
 
 
-/* -------------------------------------------------------------------------- */
-
-  int
-main( int argc, char * argv[], char ** envp )
-{
-  std::string v( argv[1] );
-  std::optional<std::string> s = coerceSemver( v );
-  std::cout << s.value_or( "FAIL" ) << std::endl;
-  return 0;
-}
-
-
 /* -------------------------------------------------------------------------- *
  *
  *

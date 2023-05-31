@@ -121,24 +121,22 @@ coerceSemver( std::string_view version )
    *   [8]: -pre
    */
 
-  std::string p   = sm[3].str();
-  std::string rsl = p + ".";
+  std::string tag( sm[8].str() );
+  std::string patch( sm[7].str() );
+  std::string minor( sm[5].str() );
+  std::string major( sm[3].str() );
+
+  std::string rsl = major + ".";
 
   /* There's some bizarre destructive behavior when we convert matched parts to
    * `std::string', so we need to "rematch" repeatedly. */
-  std::regex_match( v, sm, semverCoerceRE );
-  p = std::string( sm[5] );
-  if ( p.empty() ) { rsl += "0."; }
-  else             { rsl += p + "."; }
+  if ( minor.empty() ) { rsl += "0."; }
+  else                 { rsl += minor + "."; }
 
-  std::regex_match( v, sm, semverCoerceRE );
-  p = std::string( sm[7] );
-  if ( p.empty() ) { rsl += "0"; }
-  else             { rsl += p; }
+  if ( patch.empty() ) { rsl += "0"; }
+  else                 { rsl += patch; }
 
-  std::regex_match( rsl, sm, semverCoerceRE );
-  p = std::string( sm[8] );
-  if ( ! p.empty() ) { rsl += p; }
+  if ( ! tag.empty() ) { rsl += tag; }
 
   return std::optional<std::string>( rsl );
 }

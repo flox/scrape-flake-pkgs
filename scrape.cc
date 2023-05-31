@@ -13,41 +13,7 @@
 #include <unordered_set>
 #include <regex>
 #include <optional>
-
-
-/* -------------------------------------------------------------------------- */
-
-/* Matches Semantic Version strings, e.g. `4.2.0-pre' */
-#define _re_vp "(0|[1-9])[0-9]*"
-static const std::regex semverRE(
-  _re_vp "\\." _re_vp "\\." _re_vp "(-[-[:alnum:]_+.]+)?"
-, std::regex::ECMAScript
-);
-
-/* Coercively matches Semantic Version Strings, e.g. `v1.0-pre' */
-static const std::regex semverCoerceRE(
-  "(.*@)?[vV]?(" _re_vp "(\\." _re_vp "(\\." _re_vp ")?)?(-[-[:alnum:]_+.]+)?)"
-, std::regex::ECMAScript
-);
-
-  static std::optional<std::string>
-coerceSemver( std::string_view version )
-{
-  std::string v( version );
-  /* If it's already a match for a proper semver we're done. */
-  if ( std::regex_match( v, semverRE ) )
-    {
-      return std::optional<std::string>( v );
-    }
-
-  /* Try try matching the coercive pattern. */
-  std::cmatch cm;
-  if ( ! std::regex_match( v.c_str(), cm, semverCoerceRE ) )
-    {
-      return std::nullopt;
-    }
-  return std::optional<std::string>( cm[1] );
-}
+#include "semver.hh"
 
 
 /* -------------------------------------------------------------------------- */
@@ -337,7 +303,8 @@ struct CmdFlakeScrape : FlakeCommand {
             std::optional<std::string> position;
             std::string                pname;
             std::optional<std::string> version;
-            bool                       isSemver;
+            std::optional<std::string> semver;
+            bool                       _isSemver;
             std::string _name = visitor.getAttr( "name" )->getString();
 
             nix::DrvName dname( _name );
@@ -365,7 +332,15 @@ struct CmdFlakeScrape : FlakeCommand {
                 version = dname.version;
               }
 
-            isSemver = version && std::regex_match( * version, semverRE );
+            if ( version )
+              {
+                semver    = coerceSemver( * version );
+                _isSemver = semver != std::nullopt;
+              }
+            else
+              {
+                _isSemver = false;
+              }
 
             if ( auto aMeta = visitor.maybeGetAttr( state->sMeta ) )
               {
@@ -429,19 +404,21 @@ struct CmdFlakeScrape : FlakeCommand {
             j.emplace( "outputs", outputs );
             j.emplace( "outputsToInstall", outputsToInstall );
             j.emplace( "pname", pname );
-            j.emplace( "isSemver", isSemver );
+            j.emplace( "isSemver", _isSemver );
 
-            if ( version )     { j.emplace( "version", * version ); }
             if ( description ) { j.emplace( "description", * description ); }
-            if ( homepage )    { j.emplace( "homepage", * homepage ); }
-            if ( license )     { j.emplace( "license", * license ); }
-            if ( broken )      { j.emplace( "broken", * broken ); }
-            if ( free )        { j.emplace( "free", * free ); }
-            if ( position )    { j.emplace( "position", * position ); }
+            if ( version )     { j.emplace( "version",     * version ); }
+            if ( semver )      { j.emplace( "semver",      * semver ); }
+            if ( homepage )    { j.emplace( "homepage",    * homepage ); }
+            if ( license )     { j.emplace( "license",     * license ); }
+            if ( broken )      { j.emplace( "broken",      * broken ); }
+            if ( free )        { j.emplace( "free",        * free ); }
+            if ( position )    { j.emplace( "position",    * position ); }
             if ( longDescription )
               {
                 j.emplace( "longDescription", * longDescription );
               }
+
 
           };
 

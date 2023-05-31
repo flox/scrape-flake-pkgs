@@ -15,6 +15,11 @@
 bool isSemver( const std::string & version );
 bool isSemver( std::string_view version );
 
+bool isDate( const std::string & version );
+bool isDate( std::string_view version );
+
+bool isCoercibleToSemver( const std::string & version );
+bool isCoercibleToSemver( std::string_view version );
 
 /* -------------------------------------------------------------------------- */
 

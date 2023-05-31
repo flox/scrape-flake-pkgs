@@ -24,6 +24,13 @@ static const std::regex semverCoerceRE(
 , std::regex::ECMAScript
 );
 
+/* Match '-' separated date strings, e.g. `2023-05-31' or `5-1-23' */
+static const std::regex dateRE(
+  "([0-9][0-9]([0-9][0-9])?-[01]?[0-9]-[0-9][0-9]?|"
+  "[0-9][0-9]?-[0-9][0-9]?-[0-9][0-9]([0-9][0-9])?)"
+, std::regex::ECMAScript
+);
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -43,6 +50,40 @@ isSemver( std::string_view version )
 
 /* -------------------------------------------------------------------------- */
 
+  bool
+isDate( const std::string & version )
+{
+  return std::regex_match( version, dateRE );
+}
+
+  bool
+isDate( std::string_view version )
+{
+  std::string v( version );
+  return std::regex_match( v, dateRE );
+}
+
+
+/* -------------------------------------------------------------------------- */
+
+  bool
+isCoercibleToSemver( const std::string & version )
+{
+  return ( ! std::regex_match( version, dateRE ) ) &&
+         std::regex_match( version, semverCoerceRE );
+}
+
+  bool
+isCoercibleToSemver( std::string_view version )
+{
+  std::string v( version );
+  return ( ! std::regex_match( v, dateRE ) ) &&
+         std::regex_match( v, semverCoerceRE );
+}
+
+
+/* -------------------------------------------------------------------------- */
+
   std::optional<std::string>
 coerceSemver( std::string_view version )
 {
@@ -54,16 +95,18 @@ coerceSemver( std::string_view version )
     }
 
   /* Try try matching the coercive pattern. */
-  std::cmatch cm;
-  if ( ! std::regex_match( v.c_str(), cm, semverCoerceRE ) )
+  std::smatch sm;
+  if ( isDate( v ) || ( ! std::regex_match( v, sm, semverCoerceRE ) ) )
     {
       return std::nullopt;
     }
 
-  for ( unsigned int i = 0; i < cm.size(); ++i )
+  #if defined( DEBUG ) && ( DEBUG != 0 )
+  for ( unsigned int i = 0; i < sm.size(); ++i )
     {
-      std::cout << "[" << i << "]: " << cm[i] << std::endl;
+      std::cerr << "[" << i << "]: " << sm[i] << std::endl;
     }
+  #endif
 
   /**
    * Capture Groups Example:
@@ -78,16 +121,26 @@ coerceSemver( std::string_view version )
    *   [8]: -pre
    */
 
-  v = cm[3].str() + ".";
-  if ( 0 < cm[5].length() ) { v += cm[5].str() + "."; }
-  else                      { v += "0."; }
+  std::string p   = sm[3].str();
+  std::string rsl = p + ".";
 
-  if ( 0 < cm[7].length() ) { v += cm[7].str(); }
-  else                      { v += "0"; }
+  /* There's some bizarre destructive behavior when we convert matched parts to
+   * `std::string', so we need to "rematch" repeatedly. */
+  std::regex_match( v, sm, semverCoerceRE );
+  p = std::string( sm[5] );
+  if ( p.empty() ) { rsl += "0."; }
+  else             { rsl += p + "."; }
 
-  if ( 0 < cm[8].length() ) { v += cm[8].str(); }
+  std::regex_match( v, sm, semverCoerceRE );
+  p = std::string( sm[7] );
+  if ( p.empty() ) { rsl += "0"; }
+  else             { rsl += p; }
 
-  return std::optional<std::string>( v );
+  std::regex_match( rsl, sm, semverCoerceRE );
+  p = std::string( sm[8] );
+  if ( ! p.empty() ) { rsl += p; }
+
+  return std::optional<std::string>( rsl );
 }
 
 

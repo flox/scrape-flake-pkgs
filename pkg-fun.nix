@@ -28,7 +28,7 @@ stdenv.mkDerivation {
       -include ${nix.dev}/include/nix/config.h                                 \
       -o "libscrape$libExt"                                                    \
       ${if stdenv.isDarwin then "-undefined suppress -flat_namespace" else ""} \
-      ./scrape.cc                                                              \
+      ./semver.cc ./scrape.cc                                                  \
     ;
   '';
   installPhase = ''

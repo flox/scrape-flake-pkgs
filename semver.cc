@@ -121,15 +121,18 @@ coerceSemver( std::string_view version )
    *   [8]: -pre
    */
 
+  /* The `str()' function is destructive and works by adding null terminators to
+   * the original string.
+   * If we attempt to convert each submatch from left to right we will clobber
+   * some characters with null terminators.
+   * To avoid this we convert each submatch to a string from right to left.
+   */
   std::string tag( sm[8].str() );
   std::string patch( sm[7].str() );
   std::string minor( sm[5].str() );
-  std::string major( sm[3].str() );
 
-  std::string rsl = major + ".";
+  std::string rsl( sm[3].str() + "." );
 
-  /* There's some bizarre destructive behavior when we convert matched parts to
-   * `std::string', so we need to "rematch" repeatedly. */
   if ( minor.empty() ) { rsl += "0."; }
   else                 { rsl += minor + "."; }
 

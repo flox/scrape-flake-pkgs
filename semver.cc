@@ -27,7 +27,7 @@ static const std::regex semverCoerceRE(
 /* Match '-' separated date strings, e.g. `2023-05-31' or `5-1-23' */
 static const std::regex dateRE(
   "([0-9][0-9]([0-9][0-9])?-[01]?[0-9]-[0-9][0-9]?|"
-  "[0-9][0-9]?-[0-9][0-9]?-[0-9][0-9]([0-9][0-9])?)"
+  "[0-9][0-9]?-[0-9][0-9]?-[0-9][0-9]([0-9][0-9])?)(-[-[:alnum:]_+.]+)?"
 , std::regex::ECMAScript
 );
 

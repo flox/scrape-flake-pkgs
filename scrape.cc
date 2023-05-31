@@ -12,15 +12,45 @@
 #include <nlohmann/json.hpp>
 #include <unordered_set>
 #include <regex>
+#include <optional>
 
 
 /* -------------------------------------------------------------------------- */
 
+/* Matches Semantic Version strings, e.g. `4.2.0-pre' */
 #define _re_vp "(0|[1-9])[0-9]*"
 static const std::regex semverRE(
   _re_vp "\\." _re_vp "\\." _re_vp "(-[-[:alnum:]_+.]+)?"
 , std::regex::ECMAScript
 );
+
+/* Coercively matches Semantic Version Strings, e.g. `v1.0-pre' */
+static const std::regex semverCoerceRE(
+  "(.*@)?[vV]?(" _re_vp "(\\." _re_vp "(\\." _re_vp ")?)?(-[-[:alnum:]_+.]+)?)"
+, std::regex::ECMAScript
+);
+
+  static std::optional<std::string>
+coerceSemver( std::string_view version )
+{
+  std::string v( version );
+  /* If it's already a match for a proper semver we're done. */
+  if ( std::regex_match( v, semverRE ) )
+    {
+      return std::optional<std::string>( v );
+    }
+
+  /* Try try matching the coercive pattern. */
+  std::cmatch cm;
+  if ( ! std::regex_match( v.c_str(), cm, semverCoerceRE ) )
+    {
+      return std::nullopt;
+    }
+  return std::optional<std::string>( cm[1] );
+}
+
+
+/* -------------------------------------------------------------------------- */
 
 static const std::unordered_set<std::string> defaultSystems = {
  "x86_64-linux", "aarch64-linux", "x86_64-darwin", "aarch64-darwin"
